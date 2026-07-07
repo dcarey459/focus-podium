@@ -1,6 +1,6 @@
 ---
 name: focus-lead-followup
-description: Follow up on overdue/assigned leads in FOCUS by Reynolds and Reynolds (the dealer CRM at focus.dealer.reyrey.net, used by McElveen dealership, logged in as CAREY, DARRELL). Use this whenever Darrell asks to check his leads, find overdue calls, catch up on follow-ups, or send outreach messages to prospects in FOCUS. Covers finding overdue activities, categorizing them by type, drafting one shared-but-personalized message template, and sending it individually (email or text, never a phone call) per lead through the CRM UI.
+description: Follow up on overdue/assigned leads in FOCUS by Reynolds and Reynolds (the dealer CRM at focus.dealer.reyrey.net, used by McElveen dealership, logged in as CAREY, DARRELL). Use this whenever Darrell asks to check his leads, find overdue calls, catch up on follow-ups, or send outreach messages to prospects in FOCUS. Covers finding overdue activities, categorizing them by type, drafting one shared-but-personalized message template, and sending it individually (email or text, never a phone call). FOCUS itself has no working compose/send UI — the actual send happens in Podium (app.podium.com), a separate tool/tab used alongside FOCUS for texting and AI-driven lead follow-up.
 ---
 
 # FOCUS Lead Follow-up
@@ -11,6 +11,7 @@ Assists Darrell Carey (salesperson, CAREY, DARRELL at McElveen Inc.) with catchi
 
 - Requires `mcp__claude-in-chrome__*` tools. Load the core set in one `ToolSearch` call: `tabs_context_mcp, navigate, computer, read_page, find, get_page_text, browser_batch`.
 - FOCUS only works from **Darrell's already-logged-in tab** dragged into the Claude extension's tab group — do not navigate a fresh tab to the FOCUS URL yourself. Reynolds and Reynolds enforces single-session login, so opening/navigating a second tab to the same URL triggers "Open session detected, signing in will close any open session" and will log Darrell out of his working session. If FOCUS isn't visible via `tabs_context_mcp`, ask Darrell to drag the tab into the Claude tab group rather than opening it yourself.
+- Sending requires a **second tab on Podium** (app.podium.com/inbox), also dragged into the Claude tab group, alongside the FOCUS tab. Use `tabs_context_mcp` to check whether it's already present before asking Darrell to open it.
 - Prefer `browser_batch` to chain click → type → screenshot sequences in one round trip.
 
 ## Finding overdue activities
@@ -39,10 +40,15 @@ Group overdue rows by their activity type label (e.g. "Day 0 Internet Follow up 
 
 ## Sending
 
-On a lead's Client Record panel:
-- The icon row directly under the client name/photo (phone, envelope, chat-bubble, checkmark, calendar icons) are activity shortcuts. The **chat-bubble icon opens "Send Text Message"**; the **envelope opens "Send Email"**. Which icons are present varies per record — a business/company-type record (e.g. an LLC contact) may show no chat-bubble at all.
-- After composing, use `find` for the Send button (labeled "Send Text Message" or similar) rather than assuming a fixed coordinate — panel layout shifts slightly.
-- Verify a send actually went through by scrolling to the **Interactions** section at the bottom of the Client Record and confirming a new "Outbound Text — Text Sent" (or Outbound Email) row appears for today.
+**FOCUS's Client Record panel does not compose or send messages, despite appearances.** The icon row under the client name/photo (phone, envelope, chat-bubble, checkmark, calendar icons) looks like compose shortcuts but isn't: the chat-bubble icon just switches the panel to an "Interactions" view (a read-only log), and the other icons open "Activity Access" dialogs for *logging* an activity (e.g. recording that a call happened), not composing outbound text/email. Don't spend tool calls hunting for a "Send Text Message" button inside FOCUS — it doesn't exist there.
+
+The actual send happens in **Podium** (a separate tab, app.podium.com/inbox):
+- Find the lead's conversation via the inbox list (search by name, or check pipeline-stage filters like New lead/Qualifying/Test drive/Engaging/Payment collection/Follow-up in the left nav).
+- Compose in the text box at the bottom of the thread ("Text [Name] or use a template"), then use the **"Send and close"** button (there's also a plain send-arrow next to it — behavior difference not yet confirmed live, ask Darrell if unsure which to use).
+- Podium runs an **AI Agent** that auto-responds to leads (messages tagged "AI Agent · N sources" in the thread). Check the thread for AI Agent activity before drafting — sending a manual message unassigns the AI Agent from that conversation, so don't step on a reply it already sent.
+- Verify a send went through via the conversation thread itself (new message from Darrell) and/or the **Activity Timeline** in the contact's right-hand panel.
+- **FOCUS → Podium sync**: logging a note/activity on a lead in FOCUS automatically pushes it into Podium's conversation history. Darrell sometimes texts a customer from his personal phone, then logs that same message as a FOCUS activity purely so Podium (the system management audits for lead-credit) shows he worked it. So a message appearing in Podium isn't proof it was typed there live — either path (Podium compose, or FOCUS log that synced over) counts as "sent" for reporting purposes.
+- Not yet verified live: exact opt-in-confirmation flow inside Podium, SMS segment/character limits in Podium's compose box. Treat FOCUS's opt-in blocker (below) as the governing rule until Podium's own opt-in behavior has been observed directly.
 
 ## Known blockers — stop and ask Darrell rather than working around these
 
