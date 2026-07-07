@@ -7,6 +7,7 @@ Darrell's personal library of Claude Code skills for working McElveen's lead/CRM
 | File | Role |
 |---|---|
 | `focus-lead-followup/SKILL.md` | Workflow for finding, categorizing, and following up on overdue FOCUS leads. |
+| `memory/` | Snapshots of persistent-memory notes learned from live FOCUS/Podium sessions (FOCUS/Podium split, opt-in rules, browser-batching discipline). Source of truth is Claude's local memory store; these are pushed here for backup/reference. |
 
 ## Conventions for skill files here
 - One skill = one folder = one `SKILL.md` (frontmatter: `name`, `description`). Bundled resources go alongside it in the same folder, not loose in the repo root.
