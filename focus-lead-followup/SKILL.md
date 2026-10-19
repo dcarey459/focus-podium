@@ -5,26 +5,29 @@ description: Follow up on overdue/assigned leads in FOCUS by Reynolds and Reynol
 
 # FOCUS Lead Follow-up
 
-Assists Darrell Carey (salesperson, CAREY, DARRELL at McElveen Inc.) with catching up on overdue CRM activities in FOCUS by Reynolds and Reynolds. This is a browser-automation task against a live dealer CRM, not a code task.
+Assists Darrell Carey (salesperson, CAREY, DARRELL at McElveen Inc.) with catching up on overdue CRM activities in FOCUS by Reynolds and Reynolds. Finding/categorizing overdue activities is now a **code task** (see below) — only contact-info gathering, drafting, and sending remain browser-automation.
 
 ## Setup
 
-- Requires `mcp__claude-in-chrome__*` tools. Load the core set in one `ToolSearch` call: `tabs_context_mcp, navigate, computer, read_page, find, get_page_text, browser_batch`.
-- FOCUS only works from **Darrell's already-logged-in tab** dragged into the Claude extension's tab group — do not navigate a fresh tab to the FOCUS URL yourself. Reynolds and Reynolds enforces single-session login, so opening/navigating a second tab to the same URL triggers "Open session detected, signing in will close any open session" and will log Darrell out of his working session. If FOCUS isn't visible via `tabs_context_mcp`, ask Darrell to drag the tab into the Claude tab group rather than opening it yourself.
+- Requires `mcp__claude-in-chrome__*` tools, but only for the per-lead/sending steps. Load the core set in one `ToolSearch` call: `tabs_context_mcp, navigate, computer, read_page, find, get_page_text, browser_batch`.
+- FOCUS only works from **Darrell's already-logged-in tab**/Chrome window — do not navigate a fresh tab to the FOCUS URL yourself and do not reload it. Reynolds and Reynolds enforces single-session login; a second tab/reload on the same URL triggers "Open session detected, signing in will close any open session" and logs Darrell out. If FOCUS isn't visible via `tabs_context_mcp` in the Claude extension's tab group, ask Darrell to drag the tab in rather than opening it yourself.
 - Sending requires a **second tab on Podium** (app.podium.com/inbox), also dragged into the Claude tab group, alongside the FOCUS tab. Use `tabs_context_mcp` to check whether it's already present before asking Darrell to open it.
 - Prefer `browser_batch` to chain click → type → screenshot sequences in one round trip.
 
-## Finding overdue activities
+## Finding + categorizing overdue activities (code, not browser)
 
-FOCUS has no explicit "Overdue" filter. In the **Daily Work Plan** tab:
-1. Set date range filter to something like "Date + Previous N Days" with Status left at its default (Incomplete).
-2. Overdue rows are marked in red text with a red "!" icon; anything dated before today is overdue, today/future is not.
-3. Cross-check the count against the "Calls Overdue: N" stat in the Activity Overview widget if visible (that stat itself isn't clickable/drillable).
-4. Use `get_page_text` rather than screenshots to read full names/vehicles/emails — the visual UI truncates long strings with "...".
+Run the dedicated scraper instead of browsing Daily Work Plan by hand — it runs in its own Chrome window (its own profile + debug port 9333, separate from the Claude extension's tab group, so it can't trigger the single-session logout) and costs zero Claude tokens per run:
 
-## Categorizing
+```
+cd ~/focus-triage && source venv/bin/activate && python focus_workplan.py --no-open
+```
 
-Group overdue rows by their activity type label (e.g. "Day 0 Internet Follow up Call", "PAYOFF Follow Up", "1st Xtream Follow Up Call", "Salesperson Day 1 Phone Call", "After Sale Check Up" variants, "Anniversary Contact", "Referral Call"). Present the categories with counts and let Darrell pick which one to work first — don't assume.
+- First run of the day: Chrome opens on its own; Darrell clicks "Sign On" once if not already logged in (same session FOCUS window he should keep open/logged in all day — see [[project_focus_triage]]).
+- Output: a tiered report at `reports/focus_workplan_<date>.txt` (read this instead of re-scraping) plus `.html`, and the raw grouped-by-person JSON at `data/workplan_<date>.json`.
+- Tiers: 🔥 hot (prospect, opted in to text) / 🤝 customers (sold-customer check-ups & anniversaries — treat as pre-opted-in, see [[feedback_existing_customer_optin]]) / 📞 call-email-only (prospect, no text status) / ⏸ pending (prospect opt-in pending — skip per [[feedback_skip_optin_no_ask]]) / 🚫 optout.
+- Each person's row already groups all their overdue activity types together (e.g. "Day 0 Internet Follow up Email + Day 0 Internet Follow up Call · 9d overdue") — no need to re-derive categories from raw rows.
+- Present the tier counts from the report and let Darrell pick which tier/person to work first — don't assume.
+- If the report is stale (Darrell worked leads since, or it's a new day), just re-run the script — it's cheap. `--from-json data/workplan_<date>.json` rebuilds the report instantly without touching the browser if you only need to re-tier/re-print.
 
 ## Gathering per-lead contact info
 
